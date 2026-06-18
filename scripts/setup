@@ -1,0 +1,8 @@
+#!/bin/bash
+
+
+# use this as the example. swap out the variable that shares the same dir .devcontainer
+# /usr/local/bin/mise trust /workspaces/$DEVPOD_WORKSPACE_ID/mise.toml && /usr/local/bin/mise install
+
+/usr/local/bin/mise trust /workspaces/dev-container-playground/mise.toml && /usr/local/bin/mise install
+
