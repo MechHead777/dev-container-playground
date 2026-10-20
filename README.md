@@ -8,9 +8,9 @@ The development environment is defined under `.devcontainer/`, and project tooli
 
 This repo is one of three that set up my environment from scratch:
 
+- [arch-bootstrap](https://github.com/MechHead777/arch-bootstrap): Arch install, pacman packages, system services, then dotfiles and DevPod setup
 - [dotfiles](https://github.com/MechHead777/dotfiles): shell, editor, and CLI tools (chezmoi + mise), used on Arch, macOS, WSL, and inside containers
 - dev-container-playground (this repo): project environments with DevPod
-- [arch-bootstrap](https://github.com/MechHead777/arch-bootstrap): Arch install, pacman packages, system services, then dotfiles and DevPod setup
 
 ## Repository Structure
 
