@@ -1,79 +1,63 @@
-# Dev Container Playground
+# dev-container-playground
 
-A small playground for developing with DevPod, Docker, and dev containers.
-
-The development environment is defined under `.devcontainer/`, and project tooling is managed with mise. When a workspace starts, DevPod clones my [dotfiles](https://github.com/MechHead777/dotfiles) repo and runs its `setup` script, which applies my shell, editor, and CLI tools with chezmoi.
+Per-project development environments with DevPod and Docker. The container image defines the base environment, mise manages project tools, and the [dotfiles](https://github.com/MechHead777/dotfiles) repo supplies the shell, editor, and CLI configuration.
 
 ## Part of the stateless workstation
 
-This repo is one of three that set up my environment from scratch:
+The workstation setup is split into three repos, used in this order:
 
-- [arch-bootstrap](https://github.com/MechHead777/arch-bootstrap): Arch install, pacman packages, system services, then dotfiles and DevPod setup
-- [dotfiles](https://github.com/MechHead777/dotfiles): shell, editor, and CLI tools (chezmoi + mise), used on Arch, macOS, WSL, and inside containers
-- dev-container-playground (this repo): project environments with DevPod
+- [arch-bootstrap](https://github.com/MechHead777/arch-bootstrap): OS layer: Arch installation, system packages, and services.
+- [dotfiles](https://github.com/MechHead777/dotfiles): User layer: shell, editor, and CLI tools with chezmoi and mise.
+- dev-container-playground (this repo): Project layer: per-project environments with DevPod and Docker.
 
-## Repository Structure
+## What's Included
 
-- `.devcontainer/devcontainer.json`: points DevPod at the Dockerfile and runs `scripts/setup` after the container is created
-- `.devcontainer/Dockerfile`: builds from the Ubuntu 24.04 Dev Container base image and installs mise
-- `scripts/setup`: trusts this repo's `mise.toml` and installs the tools listed in it
-- `mise.toml`: project tools go here, pinned to the versions this project needs. It is blank for now.
+| Area | Configuration |
+|---|---|
+| Container | Ubuntu 24.04 Dev Container base image with mise installed |
+| User environment | Dotfiles applied through chezmoi when DevPod creates the workspace |
+| Project tools | Versions declared in the project's `mise.toml` and installed by `scripts/setup` |
 
-# New Machine Setup
+## Setup
 
-On Arch, [arch-bootstrap](https://github.com/MechHead777/arch-bootstrap#install) installs the prerequisites and DevPod, applies the host dotfiles, and configures the Docker provider and dotfiles options. If the first bootstrap run deferred DevPod configuration, log out and back in, then run `./bootstrap.sh --only devpod` from the bootstrap repo.
+### Arch with arch-bootstrap
 
-After bootstrap is complete, continue with [Clone This Repo](#3-clone-this-repo), then [Start the Workspace](#6-start-the-workspace). Also follow [Set Up SSH](#2-set-up-ssh) if you need to push from inside the container. The manual prerequisites and DevPod configuration steps below remain available for other Linux hosts.
+Follow [arch-bootstrap](https://github.com/MechHead777/arch-bootstrap#setup) to install the prerequisites and DevPod, apply the host dotfiles, and configure the Docker provider and dotfiles options.
 
-## 1. Install Prerequisites
+> If the first bootstrap run deferred DevPod configuration, log out and back in, then run `./bootstrap.sh --only devpod` from the bootstrap repo.
 
-**Warning: members of the `docker` group can run containers as root, which is effectively root access to the host. Only add users you would trust with `sudo`.**
+After bootstrap is complete, continue with [Usage](#usage). For GitHub pushes from inside the container, also complete [SSH access](#ssh-access-optional).
 
-First, install OpenSSH, Git, and Docker with your package manager.
+### Manual setup on another Linux host
 
-Then, enable and start Docker: `sudo systemctl enable --now docker`
+#### 1. Install prerequisites
 
-Then, add your user to the `docker` group: `sudo usermod -aG docker "$USER"`
+**Warning: Docker group membership grants effective root access to the host. Only add users you would trust with `sudo`.**
 
-After that, log out and back in so the group change takes effect.
-
-Finally, verify Docker is working: `docker run hello-world`
-
-> If this fails with a permission error, it's often because the session was not restarted after adding the group.
-
-## 2. Set Up SSH
-
-SSH is only needed for pushing to GitHub from inside the container. Cloning this repo and the dotfiles repo works over HTTPS.
-
-First, check for an existing key: `ls ~/.ssh/id_ed25519`
-
-If there isn't one, create it: `ssh-keygen -t ed25519`
-
-Then, add `~/.ssh/id_ed25519.pub` to your GitHub account.
-
-After that, start the SSH agent and load the key:
+First, install OpenSSH, Git, and Docker with your package manager. Then, enable Docker and add your user to its group:
 
 ```sh
-eval "$(ssh-agent -s)"
-ssh-add ~/.ssh/id_ed25519
+sudo systemctl enable --now docker
+sudo usermod -aG docker "$USER"
 ```
 
-Finally, verify GitHub accepts the key: `ssh -T git@github.com`
-
-## 3. Clone This Repo
+After logging out and back in, verify Docker access:
 
 ```sh
-git clone https://github.com/MechHead777/dev-container-playground.git
-cd dev-container-playground
+docker run hello-world
 ```
 
-## 4. Install DevPod
+> A permission error often means the session wasn't restarted after adding the group.
 
-Install DevPod using the [DevPod installation instructions](https://devpod.sh/docs/getting-started/install).
+#### 2. Install DevPod
 
-Then, verify the install: `devpod version`
+Follow the [DevPod installation instructions](https://devpod.sh/docs/getting-started/install), then verify the installation:
 
-## 5. Configure DevPod
+```sh
+devpod version
+```
+
+#### 3. Configure DevPod
 
 First, add and select the Docker provider:
 
@@ -82,9 +66,13 @@ devpod provider add docker
 devpod provider use docker
 ```
 
-Then, set `none` as the default IDE so workspaces open in the terminal: `devpod ide use none`
+Then, select the terminal-only workflow:
 
-Then, point DevPod at the dotfiles repo and its setup script:
+```sh
+devpod ide use none
+```
+
+Point DevPod at the dotfiles repo and its setup script:
 
 ```sh
 devpod context set-options \
@@ -92,9 +80,9 @@ devpod context set-options \
   -o DOTFILES_SCRIPT=setup
 ```
 
-> Setting `DOTFILES_SCRIPT` explicitly means a failing setup script shows up as an error. Without it, DevPod silently falls back to symlinking the repo's dotfiles into `~`.
+> Setting `DOTFILES_SCRIPT` explicitly makes a failing setup script visible. Without it, DevPod falls back to symlinking the repo's dotfiles into the home directory.
 
-Finally, enable SSH agent forwarding so you can push from inside the container:
+Finally, configure SSH agent forwarding for GitHub pushes from inside the container:
 
 ```sh
 devpod context set-options \
@@ -102,23 +90,98 @@ devpod context set-options \
   -o SSH_ADD_PRIVATE_KEYS=true
 ```
 
-> If DevPod reports `ssh-agent is not started`, start the agent and load your key as shown in step 2, then run `devpod up .` again.
+### SSH access (optional)
 
-## 6. Start the Workspace
+Cloning this repo and the dotfiles repo works over HTTPS. Set up SSH if you need to push to GitHub from inside the container.
 
-From the repo, start the workspace: `devpod up .`
-
-> If the dotfiles fail to install, run `devpod up . --debug` and look for the lines about cloning the dotfiles repo and running `./setup`.
-
-After it's finished building, connect to it: `devpod ssh .`
-
-## 7. Verify the Workspace
-
-Once inside, check that the dotfiles were applied:
+First, check for an existing key:
 
 ```sh
-chezmoi status            # should print nothing
-command -v bat eza starship    # should point into ~/.local/share/mise
+ls ~/.ssh/id_ed25519
 ```
 
-> DevPod clones the dotfiles into `~/dotfiles` only once and never pulls. If a workspace is showing old dotfiles, it's often because it was created before the latest push. Delete it with `devpod delete <workspace>` and start a new one. You can also rerun from the desired directory with `devpod up . --recreate` to save yourself an extra step.
+If there isn't one, create it:
+
+```sh
+ssh-keygen -t ed25519
+```
+
+Then, add `~/.ssh/id_ed25519.pub` to your GitHub account. Start the SSH agent and load the key in the host shell used to launch DevPod:
+
+```sh
+eval "$(ssh-agent -s)"
+ssh-add ~/.ssh/id_ed25519
+```
+
+Finally, verify GitHub access:
+
+```sh
+ssh -T git@github.com
+```
+
+> GitHub returns status `1` after a successful SSH authentication. If DevPod reports `ssh-agent is not started`, start the agent and load the key in the current host shell, then run `devpod up .` again.
+
+## Usage
+
+### Clone the project
+
+```sh
+git clone https://github.com/MechHead777/dev-container-playground.git
+cd dev-container-playground
+```
+
+### Start and connect
+
+Start the workspace from the repo directory:
+
+```sh
+devpod up .
+```
+
+> If dotfiles setup fails, run `devpod up . --debug` and look for the clone and `./setup` output.
+
+After the build finishes, connect to the container:
+
+```sh
+devpod ssh .
+```
+
+### Refresh workspace dotfiles
+
+DevPod clones the dotfiles into `~/dotfiles` once and doesn't pull updates automatically. To pick up newer dotfiles, run this from the project directory on the host:
+
+```sh
+devpod up . --recreate
+```
+
+Alternatively, delete the workspace with `devpod delete <workspace>` and start a new one.
+
+## Verification
+
+Inside the container, check the user, tool paths, and managed files:
+
+```sh
+id -un
+command -v bat eza starship mise chezmoi
+chezmoi status
+```
+
+The user should be `vscode`, all five commands should resolve, and `chezmoi status` should print nothing when there are no local changes. The bat, eza, and starship paths should point into `~/.local/share/mise`.
+
+## Repository Layout
+
+| Path | Purpose |
+|---|---|
+| `.devcontainer/devcontainer.json` | Selects the Dockerfile and runs `scripts/setup` after container creation |
+| `.devcontainer/Dockerfile` | Builds from the Ubuntu 24.04 Dev Container base image and installs mise |
+| `scripts/setup` | Trusts the project's `mise.toml` and installs its tools |
+| `mise.toml` | Project-specific tool versions; currently blank until tools are added |
+
+## Design Decisions
+
+| Decision | Choice | Reasoning |
+|---|---|---|
+| Workspace runtime | DevPod with Docker | Uses the Docker provider configured by the workstation bootstrap |
+| User configuration | Shared dotfiles repo | Applies the same shell, editor, and CLI setup inside each workspace |
+| Project tools | Per-project mise configuration | Keeps project versions in the repo's `mise.toml` |
+| Editor connection | Default IDE set to `none` | Keeps the workflow in the terminal through `devpod ssh .` |
