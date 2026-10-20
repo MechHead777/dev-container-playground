@@ -10,7 +10,7 @@ This repo is one of three that set up my environment from scratch:
 
 - [dotfiles](https://github.com/MechHead777/dotfiles): shell, editor, and CLI tools (chezmoi + mise), used on Arch, macOS, WSL, and inside containers
 - dev-container-playground (this repo): project environments with DevPod
-- arch-bootstrap (planned): Arch install, pacman packages, system services, then dotfiles and DevPod setup
+- [arch-bootstrap](https://github.com/MechHead777/arch-bootstrap): Arch install, pacman packages, system services, then dotfiles and DevPod setup
 
 ## Repository Structure
 
@@ -20,6 +20,10 @@ This repo is one of three that set up my environment from scratch:
 - `mise.toml`: project tools go here, pinned to the versions this project needs. It is blank for now.
 
 # New Machine Setup
+
+On Arch, [arch-bootstrap](https://github.com/MechHead777/arch-bootstrap#install) installs the prerequisites and DevPod, applies the host dotfiles, and configures the Docker provider and dotfiles options. If the first bootstrap run deferred DevPod configuration, log out and back in, then run `./bootstrap.sh --only devpod` from the bootstrap repo.
+
+After bootstrap is complete, continue with [Clone This Repo](#3-clone-this-repo), then [Start the Workspace](#6-start-the-workspace). Also follow [Set Up SSH](#2-set-up-ssh) if you need to push from inside the container. The manual prerequisites and DevPod configuration steps below remain available for other Linux hosts.
 
 ## 1. Install Prerequisites
 
@@ -114,7 +118,7 @@ Once inside, check that the dotfiles were applied:
 
 ```sh
 chezmoi status            # should print nothing
-which bat eza starship    # should point into ~/.local/share/mise
+command -v bat eza starship    # should point into ~/.local/share/mise
 ```
 
-> DevPod clones the dotfiles into `~/dotfiles` only once and never pulls. If a workspace is showing old dotfiles, it's often because it was created before the latest push. Delete it with `devpod delete <workspace>` and start a new one. You can also rerun from the desired directory with 'devpod up . --recreate' to save yourself an extra step.
+> DevPod clones the dotfiles into `~/dotfiles` only once and never pulls. If a workspace is showing old dotfiles, it's often because it was created before the latest push. Delete it with `devpod delete <workspace>` and start a new one. You can also rerun from the desired directory with `devpod up . --recreate` to save yourself an extra step.
